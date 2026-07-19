@@ -1,7 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { Circle } from "lucide-react";
 import { useEffect } from "react";
-import { toast } from "sonner";
 import { useNetworkHealth } from "@/features/dashboard";
 import {
 	SidebarInset,
@@ -10,7 +9,8 @@ import {
 } from "@/shared/components/ui/sidebar";
 import { Toaster } from "@/shared/components/ui/sonner";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
-import { useAppUpdate } from "@/shared/hooks/use-app-update";
+import { notifyUpdateAvailable } from "@/shared/lib/update-toast";
+import { useUpdateStore } from "@/shared/store/updateStore";
 import { AppSidebar } from "./AppSidebar";
 import { ROUTE_TITLES } from "./routeTitles";
 
@@ -41,25 +41,17 @@ function ContentHeader() {
 }
 
 function UpdateChecker() {
-	const { checkForUpdate, installUpdate } = useAppUpdate();
+	const checkForUpdate = useUpdateStore((s) => s.checkForUpdate);
 
 	useEffect(() => {
-		void checkForUpdate().then((update) => {
-			if (!update) return;
-			toast.info(`发现新版本 ${update.version}`, {
-				description: update.body ?? undefined,
-				duration: Number.POSITIVE_INFINITY,
-				action: {
-					label: "立即更新",
-					onClick: () => {
-						void installUpdate().catch(() => {
-							toast.error("更新失败，请稍后重试");
-						});
-					},
-				},
-			});
-		});
-	}, [checkForUpdate, installUpdate]);
+		// Silent background check — swallow failures instead of surfacing
+		// them, so an offline launch doesn't produce a startup error toast.
+		void checkForUpdate()
+			.then((update) => {
+				if (update) notifyUpdateAvailable(update);
+			})
+			.catch(() => {});
+	}, [checkForUpdate]);
 
 	return null;
 }

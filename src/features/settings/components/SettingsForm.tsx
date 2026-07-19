@@ -28,7 +28,8 @@ import {
 	SelectValue,
 } from "@/shared/components/ui/select";
 import { Slider } from "@/shared/components/ui/slider";
-import { useAppUpdate } from "@/shared/hooks/use-app-update";
+import { notifyUpdateAvailable } from "@/shared/lib/update-toast";
+import { useUpdateStore } from "@/shared/store/updateStore";
 import type { DnsResolver } from "@/shared/types/verify-result";
 import { useSettingsStore } from "../store/settingsStore";
 
@@ -45,8 +46,9 @@ export function SettingsForm() {
 	const { settings, load, save, fieldErrors } = useSettingsStore();
 	const [saving, setSaving] = useState(false);
 	const [appVersion, setAppVersion] = useState("");
-	const { checking, installing, checkForUpdate, installUpdate } =
-		useAppUpdate();
+	const checking = useUpdateStore((s) => s.checking);
+	const installing = useUpdateStore((s) => s.installing);
+	const checkForUpdate = useUpdateStore((s) => s.checkForUpdate);
 
 	useEffect(() => {
 		if (!settings) void load();
@@ -225,14 +227,26 @@ export function SettingsForm() {
 						<button
 							type="button"
 							className="w-fit text-left hover:text-foreground hover:underline"
-							onClick={() => openUrl(`mailto:${AUTHOR_EMAIL}`)}
+							onClick={async () => {
+								try {
+									await openUrl(`mailto:${AUTHOR_EMAIL}`);
+								} catch {
+									toast.error("无法打开邮件客户端");
+								}
+							}}
 						>
 							作者邮箱：{AUTHOR_EMAIL}
 						</button>
 						<button
 							type="button"
 							className="w-fit text-left hover:text-foreground hover:underline"
-							onClick={() => openUrl(REPO_URL)}
+							onClick={async () => {
+								try {
+									await openUrl(REPO_URL);
+								} catch {
+									toast.error("无法打开浏览器");
+								}
+							}}
 						>
 							项目地址：{REPO_URL}
 						</button>
@@ -264,16 +278,7 @@ export function SettingsForm() {
 										toast.success("已是最新版本");
 										return;
 									}
-									toast.info(`发现新版本 ${update.version}`, {
-										action: {
-											label: "立即更新",
-											onClick: () => {
-												void installUpdate().catch(() => {
-													toast.error("更新失败，请稍后重试");
-												});
-											},
-										},
-									});
+									notifyUpdateAvailable(update);
 								} catch {
 									toast.error("检查更新失败");
 								}
