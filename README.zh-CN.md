@@ -25,6 +25,16 @@
 
 每次打 tag 发布时，会在 [Releases](https://github.com/sky-flux/verify/releases) 页面发布 macOS（Apple 芯片 & Intel 芯片）、Windows、Linux 的预编译安装包。
 
+### macOS 提示"已损坏，无法打开"
+
+目前 macOS 安装包还没有经过 Apple 签名与公证，从浏览器下载后会被 Gatekeeper 拦截，提示"已损坏"（其实并没有损坏；右键"打开"这里也没用，因为这是比"来自身份不明的开发者"更严格的拦截，系统不会给出"仍要打开"的选项）。打开终端执行以下命令去除隔离标记即可正常打开：
+
+```bash
+xattr -cr "/Applications/SKY FLUX VERIFY.app"
+```
+
+（如果没有移动到"应用程序"文件夹，把路径换成实际所在位置），然后正常双击打开。
+
 ## 开发
 
 前置依赖：[Bun](https://bun.sh/)、[Rust](https://www.rust-lang.org/tools/install)，以及对应系统的 [Tauri v2 环境依赖](https://v2.tauri.app/start/prerequisites/)。

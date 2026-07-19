@@ -25,6 +25,16 @@ Built with **Tauri v2** — all verification logic (syntax validation, MX lookup
 
 Prebuilt binaries for macOS (Apple Silicon & Intel), Windows, and Linux are published on the [Releases](https://github.com/sky-flux/verify/releases) page for every tagged version.
 
+### macOS: "is damaged and can't be opened"
+
+The macOS builds aren't code-signed/notarized by Apple yet, so Gatekeeper blocks the app after downloading it from a browser and shows a misleading "is damaged" message (it isn't actually damaged — right-click → Open won't help either, since this is a stricter failure than the usual "unidentified developer" warning). To run it, remove the quarantine flag in Terminal:
+
+```bash
+xattr -cr "/Applications/SKY FLUX VERIFY.app"
+```
+
+(adjust the path if you didn't move it to `/Applications`), then open the app normally.
+
 ## Development
 
 Prerequisites: [Bun](https://bun.sh/), [Rust](https://www.rust-lang.org/tools/install), and the [Tauri v2 system prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
