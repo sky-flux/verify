@@ -1,6 +1,7 @@
 import { useForm } from "@tanstack/react-form";
+import { getVersion } from "@tauri-apps/api/app";
 import { appDataDir } from "@tauri-apps/api/path";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/button";
@@ -27,6 +28,7 @@ import {
 	SelectValue,
 } from "@/shared/components/ui/select";
 import { Slider } from "@/shared/components/ui/slider";
+import { useAppUpdate } from "@/shared/hooks/use-app-update";
 import type { DnsResolver } from "@/shared/types/verify-result";
 import { useSettingsStore } from "../store/settingsStore";
 
@@ -36,13 +38,23 @@ const DNS_RESOLVER_ITEMS: { label: string; value: DnsResolver }[] = [
 	{ label: "Google (8.8.8.8)", value: "google" },
 ];
 
+const AUTHOR_EMAIL = "martinadams.dev@gmail.com";
+const REPO_URL = "https://github.com/sky-flux/verify";
+
 export function SettingsForm() {
 	const { settings, load, save, fieldErrors } = useSettingsStore();
 	const [saving, setSaving] = useState(false);
+	const [appVersion, setAppVersion] = useState("");
+	const { checking, installing, checkForUpdate, installUpdate } =
+		useAppUpdate();
 
 	useEffect(() => {
 		if (!settings) void load();
 	}, [settings, load]);
+
+	useEffect(() => {
+		void getVersion().then(setAppVersion);
+	}, []);
 
 	const form = useForm({
 		defaultValues: settings ?? {
@@ -206,21 +218,70 @@ export function SettingsForm() {
 					<CardTitle>应用信息</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-3">
-					<span className="text-sm text-muted-foreground">版本 0.1.0</span>
-					<Button
-						type="button"
-						variant="outline"
-						className="w-fit"
-						onClick={async () => {
-							try {
-								await openPath(await appDataDir());
-							} catch {
-								toast.error("无法打开数据目录");
-							}
-						}}
-					>
-						打开数据目录
-					</Button>
+					<span className="text-sm text-muted-foreground">
+						版本 {appVersion}
+					</span>
+					<div className="flex flex-col gap-1 text-sm text-muted-foreground">
+						<button
+							type="button"
+							className="w-fit text-left hover:text-foreground hover:underline"
+							onClick={() => openUrl(`mailto:${AUTHOR_EMAIL}`)}
+						>
+							作者邮箱：{AUTHOR_EMAIL}
+						</button>
+						<button
+							type="button"
+							className="w-fit text-left hover:text-foreground hover:underline"
+							onClick={() => openUrl(REPO_URL)}
+						>
+							项目地址：{REPO_URL}
+						</button>
+					</div>
+					<div className="flex gap-2">
+						<Button
+							type="button"
+							variant="outline"
+							className="w-fit"
+							onClick={async () => {
+								try {
+									await openPath(await appDataDir());
+								} catch {
+									toast.error("无法打开数据目录");
+								}
+							}}
+						>
+							打开数据目录
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							className="w-fit"
+							disabled={checking || installing}
+							onClick={async () => {
+								try {
+									const update = await checkForUpdate();
+									if (!update) {
+										toast.success("已是最新版本");
+										return;
+									}
+									toast.info(`发现新版本 ${update.version}`, {
+										action: {
+											label: "立即更新",
+											onClick: () => {
+												void installUpdate().catch(() => {
+													toast.error("更新失败，请稍后重试");
+												});
+											},
+										},
+									});
+								} catch {
+									toast.error("检查更新失败");
+								}
+							}}
+						>
+							{checking ? "检查中..." : installing ? "更新中..." : "检查更新"}
+						</Button>
+					</div>
 				</CardContent>
 			</Card>
 
